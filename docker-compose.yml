@@ -1,0 +1,67 @@
+services:
+  traefik:
+    image: traefik:latest # Versi spesifik
+    container_name: traefik
+    environment:
+      - CF_API_EMAIL=${CLOUDFLARE_EMAIL}
+      - CF_DNS_API_TOKEN=${CLOUDFLARE_API_KEY}
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml
+      - ./traefik/custom:/etc/traefik/custom
+      - ./letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - external
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      # Autentikasi untuk dashboard Traefik
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`${DOMAIN_TRAEFIK}`)"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=${CERTRESOLVER}"
+      - "traefik.http.routers.traefik.middlewares=traefik-auth"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_PASSWORD}" # Ganti dengan user:password hash
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: laravel-app
+    container_name: laravel-app
+    restart: unless-stopped
+    # volumes:
+    #   - ./laravel-app:/app
+    networks:
+      - internal
+      - external
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${APP_NAME}.rule=Host(`${DOMAIN_LARAVEL}`)"
+      - "traefik.http.routers.${APP_NAME}.entrypoints=websecure"
+      - "traefik.http.routers.${APP_NAME}.service=${APP_NAME}"
+      - "traefik.http.routers.${APP_NAME}.tls.certresolver=${CERTRESOLVER}"
+      - "traefik.http.services.${APP_NAME}.loadbalancer.server.port=80"
+      # Middleware keamanan tambahan
+      - "traefik.http.routers.${APP_NAME}.middlewares=security-headers@file,compress@file"
+      - "traefik.docker.network=${NETWORK}"
+    healthcheck:
+      test: ["CMD", "nc", "-vz", "127.0.0.1", "9000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    env_file: .env  # Gunakan file env terpisah
+
+networks:
+  internal:
+    name: ${APP_NAME}
+  external:
+    external: true
+    name: ${NETWORK}
