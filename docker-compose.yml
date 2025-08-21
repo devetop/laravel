@@ -52,11 +52,6 @@ services:
       # Middleware keamanan tambahan
       - "traefik.http.routers.${APP_NAME}.middlewares=security-headers@file,compress@file"
       - "traefik.docker.network=${NETWORK}"
-    healthcheck:
-      test: ["CMD", "nc", "-vz", "127.0.0.1", "9000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     env_file: .env  # Gunakan file env terpisah
 
 networks:

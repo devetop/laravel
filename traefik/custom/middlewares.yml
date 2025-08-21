@@ -11,9 +11,34 @@ http:
         stsPreload: true
     
     compress:
-      compress: {}
+      compress:
+        excludedContentTypes:
+          - "text/event-stream"
+          - "application/octet-stream"
+          - "image/jpeg"
+          - "image/png"
+          - "image/gif"
+          - "application/pdf"
+        minResponseBodyBytes: 1024
+        encodings:
+          - "br"
+          - "gzip"
     
     ratelimit:
       rateLimit:
         average: 100
         burst: 50
+
+    in-flight-limiter:
+      inFlightReq:
+        amount: 10
+        sourceCriterion:
+          ipStrategy:
+            depth: 0
+            excludedIPs:
+              - "127.0.0.1/32"
+              - "::1/128"      # Tambahkan IPv6 localhost
+              - "10.0.0.0/8"   # IP internal (jika ada)
+              - "172.16.0.0/12" # IP internal (jika ada)
+              - "192.168.0.0/16" # IP internal (jika ada)
+          # requestHost: true
