@@ -32,3 +32,16 @@ http:
     in-flight-limiter:
       inFlightReq:
         amount: 10
+
+    retry:
+      retry:
+        attempts: 3
+        initialInterval: 100ms
+
+    latency-check:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.20 || ResponseCodeRatio(500, 600, 0, 600) > 0.25"
+        checkPeriod: "10s"
+        fallbackDuration: "30s"
+        recoveryDuration: "60s"
+        responseCode: 503
