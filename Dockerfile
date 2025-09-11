@@ -9,12 +9,12 @@ WORKDIR /app
 # Create Laravel project
 RUN composer create-project laravel/laravel . --remove-vcs --prefer-dist
 
+# Copy application files (excluding what's in .dockerignore)
+# COPY . .
+
 # Set permissions
 RUN chown -R application:application /app
 RUN chmod -R 775 storage bootstrap/cache
-
-# Copy application files (excluding what's in .dockerignore)
-# COPY . .
 
 # Generate application key
 RUN cp .env.example .env && \
