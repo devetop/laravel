@@ -29,36 +29,26 @@ services:
       - "traefik.http.routers.traefik.tls.certresolver=${CERTRESOLVER}"
       - "traefik.http.routers.traefik.middlewares=traefik-auth"
       - "traefik.http.middlewares.traefik-auth.basicauth.users=${TRAEFIK_PASSWORD}" # Ganti dengan user:password hash
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,environment"
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
     image: laravel-app
+    restart: unless-stopped
     deploy:
       mode: replicated
       replicas: ${REPLICAS:-3}
-      update_config:
-        parallelism: 2
-        delay: 10s
-        order: start-first
-      rollback_config:
-        parallelism: 1
-        delay: 5s
-        order: stop-first
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
       resources:
         limits:
           cpus: '${CPU_LIMIT:-0.5}'
           memory: ${MEMORY_LIMIT:-512M}
-        reservations:
-          cpus: '${CPU_RESERVE:-0.25}'
-          memory: ${MEMORY_RESERVE:-256M}
-    restart: unless-stopped
     # volumes:
     #   - ./laravel-app:/app
     networks:
@@ -75,6 +65,12 @@ services:
       - "traefik.http.routers.${APP_NAME}.middlewares=security-headers@file,compress@file"
       - "traefik.docker.network=${NETWORK}"
     env_file: .env  # Gunakan file env terpisah
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,environment"
 
 networks:
   internal:
